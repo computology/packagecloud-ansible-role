@@ -1,0 +1,47 @@
+- name: Install debian-archive-keyring and apt-transport-https
+  apt: pkg={{ item }} state=present update_cache=true
+  with_items:
+    - curl
+    - debian-archive-keyring
+    - apt-transport-https
+  when: ansible_os_family == "Debian"
+
+- name: Install pygpgme and yum-utils
+  yum: name={{ item }} state=present update_cache=true
+  with_items:
+    - curl
+    - pygpgme
+    - yum-utils
+  when: ansible_os_family == "RedHat"
+
+- name: Add packagecloud.io GPG key to apt-key
+  apt_key: id=D59097AB url=https://packagecloud.io/gpg.key state=present
+  when: ansible_os_family == "Debian"
+
+- name: "Adding packagecloud.io repository: {{ repository }}"
+  shell: curl "{{ debian_config_file_url_without_token }}" > {{ debian_config_file_location }} creates={{ debian_config_file_location }}
+  register: added_deb_repository
+  when: ansible_os_family == "Debian" and master_token is undefined
+
+- name: "Adding packagecloud.io repository: {{ repository }} with generated read token"
+  shell: curl "{{ debian_config_file_url_with_token }}" > {{ debian_config_file_location }} creates={{ debian_config_file_location }}
+  register: added_deb_repository
+  when: ansible_os_family == "Debian" and master_token is defined
+
+- name: "Adding packagecloud.io repository: {{ repository }}"
+  shell: curl "{{ redhat_config_file_url_without_token }}" > / {{ redhat_config_file_location }} creates={{ redhat_config_file_location }}
+  register: added_rpm_repository
+  when: ansible_os_family == "RedHat" and master_token is undefined
+
+- name: "Adding packagecloud.io repository: {{ repository }} with generated read token"
+  shell: curl "{{ redhat_config_file_url_with_token }}" > {{ redhat_config_file_location }} creates={{ redhat_config_file_location }}
+  register: added_rpm_repository
+  when: ansible_os_family == "RedHat" and master_token is defined
+
+- name: Update APT package cache
+  apt: update_cache=true
+  when: ansible_os_family == "Debian" and added_deb_repository|success
+
+- name: Update yum package cache
+  shell: yum -q makecache -y --disablerepo='*' --enablerepo='{{ repository|replace("/", "_")}}'
+  when: ansible_os_family == "RedHat" and added_rpm_repository|success

@@ -1,0 +1,7 @@
+debian_config_file_url_with_token: https://{{ master_token }}:@packagecloud.io/install/repositories/{{ repository }}/config_file.list?os={{ os }}&dist={{ version }}&name={{ ansible_nodename }}
+debian_config_file_url_without_token: https://packagecloud.io/install/repositories/{{ repository }}/config_file.list?os={{ os }}&dist={{ version }}&name={{ ansible_nodename }}
+debian_config_file_location: /etc/apt/sources.list.d/{{ repository|replace("/", "_")}}.list
+
+redhat_config_file_url_with_token: https://{{ master_token }}:@packagecloud.io/install/repositories/{{ repository }}/config_file.repo?os={{ os }}&dist={{ version }}&name={{ ansible_nodename }}
+redhat_config_file_url_without_token: https://packagecloud.io/install/repositories/{{ repository }}/config_file.repo?os={{ os }}&dist={{ version }}&name={{ ansible_nodename }}
+redhat_config_file_location: /etc/yum.repos.d/{{ repository|replace("/", "_")}}.repo
