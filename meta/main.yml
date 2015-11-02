@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: Julio Capote
+  description: Install packagecloud.io repositories
+  company: Computology
+  license: MIT
+  min_ansible_version: 1.9
+  galaxy_tags:
+    - packaging
+    - cloud
+dependencies: []
