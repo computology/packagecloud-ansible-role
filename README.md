@@ -2,13 +2,9 @@
 
 ## Overview
 
-This module lets you easily add [packageloud.io](packagecloud.io) repositories to your RedHat and Debian system from ansible.
+This role lets you easily add [packageloud.io](packagecloud.io) repositories to your RedHat and Debian systems from ansible.
 
 *Note: This is a simple role that only covers the common cases and as such isn't as robust as it could be; development of a full-blown ansible module is on our roadmap.*
-
-## Installation
-
-Make sure this role is in your configured `role_path`.
 
 ## Role Configuration
 
@@ -21,3 +17,8 @@ Make sure this role is in your configured `role_path`.
 ## Example
     - { role: packagecloud, repository: capotej/apt-cacher-ng, os: ubuntu, version: trusty }
     - { role: packagecloud, repository: corp/private-repo, os: centos, version: 6, master_token: "{{ encrypted_master_token_from_vault }}" }
+
+## TODO
+
+* CentOS 5 support
+* Handle cases where `pygpgme` cannot be installed
