@@ -4,7 +4,7 @@
 
 This module lets you easily add [packageloud.io](packagecloud.io) repositories to your RedHat and Debian system from ansible.
 
-*Note: This is a simple role that only covers the common cases and as such isn't as robust as it could be; Development of a full-blown ansible module is on our roadmap.*
+*Note: This is a simple role that only covers the common cases and as such isn't as robust as it could be; development of a full-blown ansible module is on our roadmap.*
 
 ## Installation
 
