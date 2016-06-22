@@ -29,7 +29,7 @@
   when: ansible_os_family == "Debian" and master_token is defined
 
 - name: "Adding packagecloud.io repository: {{ repository }}"
-  shell: curl "{{ redhat_config_file_url_without_token }}" > / {{ redhat_config_file_location }} creates={{ redhat_config_file_location }}
+  shell: curl "{{ redhat_config_file_url_without_token }}" > {{ redhat_config_file_location }} creates={{ redhat_config_file_location }}
   register: added_rpm_repository
   when: ansible_os_family == "RedHat" and master_token is undefined
 
