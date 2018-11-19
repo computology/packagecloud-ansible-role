@@ -1,14 +1,16 @@
 - name: Install debian-archive-keyring and apt-transport-https
-  apt: pkg={{ item }} state=present update_cache=true
-  with_items:
+  apt: pkg={{ packages }} state=present update_cache=true
+  vars:
+    packages:
     - curl
     - debian-archive-keyring
     - apt-transport-https
   when: ansible_os_family == "Debian"
 
 - name: Install pygpgme and yum-utils
-  yum: name={{ item }} state=present update_cache=true
-  with_items:
+  yum: name={{ packages }} state=present update_cache=true
+  vars:
+    packages:
     - curl
     - pygpgme
     - yum-utils
@@ -40,8 +42,8 @@
 
 - name: Update APT package cache
   apt: update_cache=true
-  when: ansible_os_family == "Debian" and added_deb_repository|success
+  when: ansible_os_family == "Debian" and added_deb_repository is success
 
 - name: Update yum package cache
   shell: yum -q makecache -y --disablerepo='*' --enablerepo='{{ repository|replace("/", "_")}}'
-  when: ansible_os_family == "RedHat" and added_rpm_repository|success
+  when: ansible_os_family == "RedHat" and added_rpm_repository is success
