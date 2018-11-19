@@ -1,0 +1,36 @@
+---
+driver:
+  name: docker
+  use_sudo: false
+
+platforms:
+  - name: ubuntu1804
+    driver:
+      platform: ubuntu
+      dockerfile: build/Dockerfile.ubuntu18
+      run_command: /usr/sbin/sshd -D
+
+provisioner:
+  name: ansible_playbook
+  hosts: test-kitchen
+  require_ansible_repo: false
+  require_ansible_source: false
+  require_ansible_omnibus: false
+  require_pip: false
+  ansible_verbose: true
+  ansible_version: latest
+  require_chef_for_busser: false
+
+
+verifier:
+  name: inspec
+
+suites:
+  - name: default
+    verifier:
+        default_pattern: true
+        bundler_path: '/usr/local/bin'
+        rspec_path: '/usr/local/bin'
+        env_vars:
+              TARGET_HOST: 127.0.0.1
+              SUDO: true
