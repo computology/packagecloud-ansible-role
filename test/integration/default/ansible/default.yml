@@ -1,11 +1,4 @@
 ---
 - hosts: test-kitchen
-  tasks:
-  - name: Install debian-archive-keyring and apt-transport-https
-    apt: pkg={{ packages }} state=present update_cache=true
-    vars:
-      packages:
-      - curl
-      - debian-archive-keyring
-      - apt-transport-https
-    when: ansible_os_family == "Debian"
+  roles:
+  - { role: packagecloud-ansible-role, repository: capotej/apt-cacher-ng, os: ubuntu, version: trusty }

@@ -17,7 +17,7 @@
   when: ansible_os_family == "RedHat"
 
 - name: Add packagecloud.io GPG key to apt-key
-  apt_key: id=418A7F2FB0E1E6E7EABF6FE8C2E73424D59097AB url=https://packagecloud.io/{{ repository }}/gpgkey state=present
+  apt_key: url=https://packagecloud.io/{{ repository }}/gpgkey state=present
   when: ansible_os_family == "Debian"
 
 - name: "Adding packagecloud.io repository: {{ repository }}"
