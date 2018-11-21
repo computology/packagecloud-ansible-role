@@ -1,3 +1,9 @@
+- name: Setting facts
+  set_fact:
+    url_tmp_file_path: /tmp/packagecloud_{{repository |replace("/", "_")}}_url
+    tmp_file_path: /tmp/packagecloud_{{repository |replace("/", "_")}}_key
+  when: ansible_os_family == "Debian"
+
 - name: Install debian-archive-keyring and apt-transport-https
   apt: pkg={{ packages }} state=present update_cache=true
   vars:
@@ -16,27 +22,58 @@
     - yum-utils
   when: ansible_os_family == "RedHat"
 
-- name: Add packagecloud.io GPG key to apt-key
+  # {{ repository }}/gpgkey URL works for both legacy and modern public repositories.
+- name: Add {{repository}} GPG key to apt-key
   apt_key: url=https://packagecloud.io/{{ repository }}/gpgkey state=present
-  when: ansible_os_family == "Debian"
+  when: ansible_os_family == "Debian" and master_token is undefined
+
+  # If master_token AND legacy_gpg = true given, then use the legacy GPG key located at /gpg.key
+- name: Add packagecloud.io GPG key to apt-key
+  apt_key: url=https://packagecloud.io/gpg.key state=present
+  when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is defined
+
+  # The following two plays are needed as a workaround since the GPG key URL uses basic auth, and that isn't
+  # supported by lookup('url', url_with_basic_auth) yet: https://github.com/ansible/ansible/pull/43467/files
+  # Instead, we download the generated GPG key URLfrom the GPG key URL config endpoint and save that URL to a file
+  # which is lookup()'ed and fetched by the play below.
+- name: Get GPG key URL for {{ repository }}
+  shell: curl -s "{{ debian_gpg_key_url_with_token }}" > {{ url_tmp_file_path }} creates={{ url_tmp_file_path }}
+  when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
+
+  # See above play.
+- name: Download key located at GPG key URL for {{ repository }}
+  shell: curl -sL "{{ lookup('file', url_tmp_file_path) }}" > {{ tmp_file_path }} creates={{ tmp_file_path }}
+  when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
+
+- name: Add {{repository}} GPG key to apt-key
+  apt_key: file={{ tmp_file_path }} state=present
+  when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
+
+- name: Clean up temporary GPG files
+  file: path={{ url_tmp_file_path }} state=absent
+  when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
+
+- name: Clean up temporary GPG files
+  file: path={{ tmp_file_path }} state=absent
+  when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
 
 - name: "Adding packagecloud.io repository: {{ repository }}"
-  shell: curl "{{ debian_config_file_url_without_token }}" > {{ debian_config_file_location }} creates={{ debian_config_file_location }}
+  shell: curl -s "{{ debian_config_file_url_without_token }}" > {{ debian_config_file_location }} creates={{ debian_config_file_location }}
   register: added_deb_repository
   when: ansible_os_family == "Debian" and master_token is undefined
 
 - name: "Adding packagecloud.io repository: {{ repository }} with generated read token"
-  shell: curl "{{ debian_config_file_url_with_token }}" > {{ debian_config_file_location }} creates={{ debian_config_file_location }}
+  shell: curl -s "{{ debian_config_file_url_with_token }}" > {{ debian_config_file_location }} creates={{ debian_config_file_location }}
   register: added_deb_repository
   when: ansible_os_family == "Debian" and master_token is defined
 
 - name: "Adding packagecloud.io repository: {{ repository }}"
-  shell: curl "{{ redhat_config_file_url_without_token }}" > {{ redhat_config_file_location }} creates={{ redhat_config_file_location }}
+  shell: curl -s "{{ redhat_config_file_url_without_token }}" > {{ redhat_config_file_location }} creates={{ redhat_config_file_location }}
   register: added_rpm_repository
   when: ansible_os_family == "RedHat" and master_token is undefined
 
 - name: "Adding packagecloud.io repository: {{ repository }} with generated read token"
-  shell: curl "{{ redhat_config_file_url_with_token }}" > {{ redhat_config_file_location }} creates={{ redhat_config_file_location }}
+  shell: curl -s "{{ redhat_config_file_url_with_token }}" > {{ redhat_config_file_location }} creates={{ redhat_config_file_location }}
   register: added_rpm_repository
   when: ansible_os_family == "RedHat" and master_token is defined
 
