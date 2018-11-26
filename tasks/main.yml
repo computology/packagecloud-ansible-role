@@ -32,17 +32,24 @@
   apt_key: url=https://packagecloud.io/gpg.key state=present
   when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is defined
 
-  # The following two plays are needed as a workaround since the GPG key URL uses basic auth, and that isn't
+  # The following three plays are needed as a workaround since the GPG key URL uses basic auth, and that isn't
   # supported by lookup('url', url_with_basic_auth) yet: https://github.com/ansible/ansible/pull/43467/files
   # Instead, we download the generated GPG key URLfrom the GPG key URL config endpoint and save that URL to a file
-  # which is lookup()'ed and fetched by the play below.
+  # which is slurp()'ed and curl()'ed by the two plays below.
 - name: Get GPG key URL for {{ repository }}
   shell: curl -s "{{ debian_gpg_key_url_with_token }}" > {{ url_tmp_file_path }} creates={{ url_tmp_file_path }}
   when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
 
   # See above play.
+- name: Register GPG key URL for {{ repository }}
+  slurp:
+    src: "{{ url_tmp_file_path }}"
+  register: url_tmp_file_url
+  when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
+
+  # See above play.
 - name: Download key located at GPG key URL for {{ repository }}
-  shell: curl -sL "{{ lookup('file', url_tmp_file_path) }}" > {{ tmp_file_path }} creates={{ tmp_file_path }}
+  shell: curl -sL "{{ url_tmp_file_url['content'] | b64decode | trim }}" > {{ tmp_file_path }} creates={{ tmp_file_path }} warn=False
   when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
 
 - name: Add {{repository}} GPG key to apt-key
