@@ -23,6 +23,18 @@ This role lets you easily add [packagecloud.io](https://packagecloud.io) reposit
     - { role: packagecloud, repository: capotej/apt-cacher-ng, os: ubuntu, version: trusty, legay_gpg: true }
     - { role: packagecloud, repository: corp/private-repo, os: centos, version: 6, master_token: "{{ encrypted_master_token_from_vault }}" }
 
+## Running Tests / Development
+
+     bundle install
+
+     bundle exec kitchen test
+
+For testing private repositories, edit `test/integration/default/ansible/default.yml` as desired.
+
+Note: This expects docker to be running and available.
+
+
+
 ## TODO
 
 * CentOS 5 support
