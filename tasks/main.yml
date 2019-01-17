@@ -81,7 +81,7 @@
       dest: "{{ debian_config_file_location }}"
       url_username: "{{ master_token }}"
       force_basic_auth: yes
-  register: added_deb_repository
+  register: added_deb_repository_with_token
   when: ansible_os_family == "Debian" and master_token is defined
 
 - name: "Adding packagecloud.io repository: {{ repository }}"
@@ -97,7 +97,7 @@
       dest: "{{ redhat_config_file_location }}"
       url_username: "{{ master_token }}"
       force_basic_auth: yes
-  register: added_rpm_repository
+  register: added_rpm_repository_with_token
   when: ansible_os_family == "RedHat" and master_token is defined
 
 - name: Disable repo_gpgcheck !workaround!
@@ -105,15 +105,15 @@
     path: "{{ redhat_config_file_location }}"
     regexp: "^repo_gpgcheck=1$"
     replace: "repo_gpgcheck=0"
-  when: ansible_os_family == "RedHat" and added_rpm_repository|success
+  when: ansible_os_family == "RedHat" and (added_rpm_repository.changed or added_rpm_repository_with_token.changed)
 
 - name: Update APT package cache
   apt: update_cache=true
-  when: ansible_os_family == "Debian" and added_deb_repository is success
+  when: ansible_os_family == "Debian" and (added_deb_repository.changed or added_deb_repository_with_token.changed)
 
 - name: Update yum package cache
   yum:
       name: '*'
       update_cache: yes
       enablerepo: '{{ repository|replace("/", "_")}}'
-  when: ansible_os_family == "RedHat" and added_rpm_repository|success
+  when: ansible_os_family == "RedHat" and (added_rpm_repository.changed or added_rpm_repository_with_token.changed)
