@@ -1,5 +1,6 @@
 ---
 galaxy_info:
+  role_name: packagecloud
   author: Julio Capote
   description: Install packagecloud.io repositories
   company: Computology
