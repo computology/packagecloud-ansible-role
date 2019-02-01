@@ -2,10 +2,6 @@ describe package('apt-transport-https') do
   it { should be_installed }
 end
 
-describe package('curl') do
-  it { should be_installed }
-end
-
 describe package('debian-archive-keyring') do
   it { should be_installed }
 end
