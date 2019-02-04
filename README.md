@@ -25,11 +25,7 @@ This role lets you easily add [packagecloud.io](https://packagecloud.io) reposit
 
 ## Running Tests / Development
 
-     bundle install
-
-     bundle exec kitchen test
-
-For testing private repositories, edit `test/integration/default/ansible/default.yml` as desired.
+     molecule test
 
 Note: This expects docker to be running and available.
 

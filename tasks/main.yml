@@ -1,33 +1,50 @@
+---
 - name: Setting facts
   set_fact:
-    url_tmp_file_path: /tmp/packagecloud_{{repository |replace("/", "_")}}_url
-    tmp_file_path: /tmp/packagecloud_{{repository |replace("/", "_")}}_key
+    url_tmp_file_path: /tmp/packagecloud_{{ repository |replace("/", "_") }}_url
+    tmp_file_path: /tmp/packagecloud_{{ repository |replace("/", "_") }}_key
   when: ansible_os_family == "Debian"
 
 - name: Install debian-archive-keyring and apt-transport-https
   apt: pkg={{ packages }} state=present update_cache=true
   vars:
     packages:
-    - debian-archive-keyring
-    - apt-transport-https
+      - debian-archive-keyring
+      - apt-transport-https
+  register: task_result
+  until: task_result is success
+  retries: 10
+  delay: 2
   when: ansible_os_family == "Debian"
 
 - name: Install pygpgme and yum-utils
   yum: name={{ packages }} state=present update_cache=true
   vars:
     packages:
-    - pygpgme
-    - yum-utils
+      - pygpgme
+      - yum-utils
+  register: task_result
+  until: task_result is success
+  retries: 10
+  delay: 2
   when: ansible_os_family == "RedHat"
 
   # {{ repository }}/gpgkey URL works for both legacy and modern public repositories.
-- name: Add {{repository}} GPG key to apt-key
+- name: Add {{ repository }} GPG key to apt-key
   apt_key: url=https://packagecloud.io/{{ repository }}/gpgkey state=present
+  register: task_result
+  until: task_result is success
+  retries: 10
+  delay: 2
   when: ansible_os_family == "Debian" and master_token is undefined
 
   # If master_token AND legacy_gpg = true given, then use the legacy GPG key located at /gpg.key
 - name: Add packagecloud.io GPG key to apt-key
   apt_key: url=https://packagecloud.io/gpg.key state=present
+  register: task_result
+  until: task_result is success
+  retries: 10
+  delay: 2
   when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is defined
 
   # The following three plays are needed as a workaround since the GPG key URL uses basic auth, and that isn't
@@ -36,10 +53,10 @@
   # which is slurp()'ed and curl()'ed by the two plays below.
 - name: Get GPG key URL for {{ repository }}
   get_url:
-      url: "{{ debian_gpg_key_url }}"
-      dest: "{{ url_tmp_file_path }}"
-      url_username: "{{ master_token }}"
-      force_basic_auth: yes
+    url: "{{ debian_gpg_key_url }}"
+    dest: "{{ url_tmp_file_path }}"
+    url_username: "{{ master_token }}"
+    force_basic_auth: true
   when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
 
   # See above play.
@@ -52,12 +69,16 @@
   # See above play.
 - name: Download key located at GPG key URL for {{ repository }}
   get_url:
-      url: "{{ url_tmp_file_url['content'] | b64decode | trim }}"
-      dest: "{{ tmp_file_path }}"
+    url: "{{ url_tmp_file_url['content'] | b64decode | trim }}"
+    dest: "{{ tmp_file_path }}"
   when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
 
-- name: Add {{repository}} GPG key to apt-key
+- name: Add {{ repository }} GPG key to apt-key
   apt_key: file={{ tmp_file_path }} state=present
+  register: task_result
+  until: task_result is success
+  retries: 10
+  delay: 2
   when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
 
 - name: Clean up temporary GPG files
@@ -70,43 +91,32 @@
 
 - name: "Adding packagecloud.io repository: {{ repository }}"
   get_url:
-      url: "{{ debian_config_file_url }}"
-      dest: "{{ debian_config_file_location }}"
-  register: added_deb_repository
+    url: "{{ debian_config_file_url }}"
+    dest: "{{ debian_config_file_location }}"
+  notify: update apt cache
   when: ansible_os_family == "Debian" and master_token is undefined
 
 - name: "Adding packagecloud.io repository: {{ repository }} with generated read token"
   get_url:
-      url: "{{ debian_config_file_url }}"
-      dest: "{{ debian_config_file_location }}"
-      url_username: "{{ master_token }}"
-      force_basic_auth: yes
-  register: added_deb_repository_with_token
+    url: "{{ debian_config_file_url }}"
+    dest: "{{ debian_config_file_location }}"
+    url_username: "{{ master_token }}"
+    force_basic_auth: true
+  notify: update apt cache
   when: ansible_os_family == "Debian" and master_token is defined
 
 - name: "Adding packagecloud.io repository: {{ repository }}"
   get_url:
-      url: "{{ redhat_config_file_url }}"
-      dest: "{{ redhat_config_file_location }}"
-  register: added_rpm_repository
+    url: "{{ redhat_config_file_url }}"
+    dest: "{{ redhat_config_file_location }}"
+  notify: update yum cache
   when: ansible_os_family == "RedHat" and master_token is undefined
 
 - name: "Adding packagecloud.io repository: {{ repository }} with generated read token"
   get_url:
-      url: "{{ redhat_config_file_url }}"
-      dest: "{{ redhat_config_file_location }}"
-      url_username: "{{ master_token }}"
-      force_basic_auth: yes
-  register: added_rpm_repository_with_token
+    url: "{{ redhat_config_file_url }}"
+    dest: "{{ redhat_config_file_location }}"
+    url_username: "{{ master_token }}"
+    force_basic_auth: true
+  notify: update yum cache
   when: ansible_os_family == "RedHat" and master_token is defined
-
-- name: Update APT package cache
-  apt: update_cache=true
-  when: ansible_os_family == "Debian" and (added_deb_repository.changed or added_deb_repository_with_token.changed)
-
-- name: Update yum package cache
-  yum:
-      name: '*'
-      update_cache: yes
-      enablerepo: '{{ repository|replace("/", "_")}}'
-  when: ansible_os_family == "RedHat" and (added_rpm_repository.changed or added_rpm_repository_with_token.changed)

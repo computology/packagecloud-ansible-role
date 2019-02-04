@@ -1,0 +1,51 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+
+  vars:
+    repository: 'raintank/raintank'
+
+  pre_tasks:
+    - name: Set facts for packagecloud configuration (RedHat)
+      when: ansible_os_family == 'RedHat'
+      set_fact:
+        os: 'el'
+        version: '{{ ansible_distribution_major_version }}'
+
+    - name: Set facts for packagecloud configuration (Debian)
+      when: ansible_distribution == 'Debian'
+      set_fact:
+        os: 'Debian'
+        version: 'jessie'
+
+    - name: Set facts for packagecloud configuration (Ubuntu)
+      when: ansible_distribution == 'Ubuntu'
+      set_fact:
+        os: 'ubuntu'
+        version: 'xenial'
+
+  roles:
+    - role: computology.packagecloud
+
+  post_tasks:
+    - name: Check if repo has been added (RedHat)
+      stat:
+        path: /etc/yum.repos.d/{{ repository|replace("/", "_") }}.repo
+      register: p_redhat
+      when: ansible_os_family == 'RedHat'
+
+    - name: Check if repo has been added (Debian)
+      stat:
+        path: /etc/apt/sources.list.d/{{ repository|replace("/", "_") }}.list
+      register: p_debian
+      when: ansible_os_family == 'Debian'
+
+    - name: set p
+      set_fact:
+        p: '{{ p_redhat if not p_redhat is skipped else p_debian }}'
+
+    - name: Validate file
+      assert:
+        that:
+          - p.stat.exists and p.stat.isreg

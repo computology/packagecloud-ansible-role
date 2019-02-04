@@ -1,3 +1,4 @@
+---
 debian_gpg_key_url: https://packagecloud.io/install/repositories/{{ repository }}/gpg_key_url.list?os={{ os }}&dist={{ version }}&name={{ ansible_nodename }}
 debian_config_file_url: https://packagecloud.io/install/repositories/{{ repository }}/config_file.list?os={{ os }}&dist={{ version }}&name={{ ansible_nodename }}
 debian_config_file_location: /etc/apt/sources.list.d/{{ repository|replace("/", "_")}}.list
