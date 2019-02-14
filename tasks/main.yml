@@ -54,6 +54,7 @@
   get_url:
       url: "{{ url_tmp_file_url['content'] | b64decode | trim }}"
       dest: "{{ tmp_file_path }}"
+      force_basic_auth: yes
   when: ansible_os_family == "Debian" and master_token is defined and legacy_gpg is undefined
 
 - name: Add {{repository}} GPG key to apt-key
