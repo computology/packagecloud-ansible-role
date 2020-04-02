@@ -20,7 +20,8 @@ provisioner:
   ansible_verbose: true
   ansible_version: latest
   require_chef_for_busser: false
-
+  idempotency_test: true
+#  ansible_check: true
 
 verifier:
   name: inspec
