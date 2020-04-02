@@ -1,0 +1,32 @@
+---
+- name: Install pygpgme and yum-utils
+  yum: name={{ packages }} state=present update_cache=true
+  vars:
+    packages:
+    - pygpgme
+    - yum-utils
+
+- name: "Adding packagecloud.io repository: {{ repository }}"
+  get_url:
+    url: "{{ redhat_config_file_url }}"
+    dest: "{{ redhat_config_file_location }}"
+    force: false
+  register: added_rpm_repository
+  when: master_token is undefined
+
+- name: "Adding packagecloud.io repository: {{ repository }} with generated read token"
+  get_url:
+    url: "{{ redhat_config_file_url }}"
+    dest: "{{ redhat_config_file_location }}"
+    url_username: "{{ master_token }}"
+    force_basic_auth: yes
+    force: false
+  register: added_rpm_repository_with_token
+  when: master_token is defined
+
+- name: Update yum package cache
+  yum:
+    name: '*'
+    update_cache: yes
+    enablerepo: '{{ repository|replace("/", "_")}}'
+  when: added_rpm_repository.changed or added_rpm_repository_with_token.changed

@@ -1,0 +1,80 @@
+---
+- name: Setting facts
+  set_fact:
+    url_tmp_file_path: /tmp/packagecloud_{{repository |replace("/", "_")}}_url
+    tmp_file_path: /tmp/packagecloud_{{repository |replace("/", "_")}}_key
+
+- name: Update APT package cache
+  apt:
+    update_cache: true
+  changed_when: false
+
+- name: Install debian-archive-keyring and apt-transport-https
+  apt:
+    pkg:
+      - debian-archive-keyring
+      - apt-transport-https
+    state: present
+
+  # {{ repository }}/gpgkey URL works for both legacy and modern public repositories.
+- name: Add {{repository}} GPG key to apt-key
+  apt_key:
+    url: https://packagecloud.io/{{ repository }}/gpgkey
+    state: present
+  when: master_token is undefined
+
+  # If master_token AND legacy_gpg = true given, then use the legacy GPG key located at /gpg.key
+- name: Add packagecloud.io GPG key to apt-key
+  apt_key:
+    url: https://packagecloud.io/gpg.key
+    state: present
+  when: master_token is defined and legacy_gpg is defined
+
+- name: Get GPG key URL for {{ repository }}
+  uri:
+    url: "{{ debian_gpg_key_url }}"
+    user: "{{ master_token }}"
+    force_basic_auth: true
+    return_content: true
+  register: gpg_url
+  check_mode: false
+  when: master_token is defined and legacy_gpg is undefined
+
+- name: Get GPG key for {{ repository }}
+  uri:
+    url: "https://{{ gpg_url.content.split('@')[1] | trim }}" 
+    user: "{{ gpg_url.content.split('@')[0] | replace ('https://', '') }}"
+    force_basic_auth: true
+    return_content: true
+  register: gpg_key
+  check_mode: false
+  when: master_token is defined and legacy_gpg is undefined
+
+- name: Add {{repository}} GPG key to apt-key
+  apt_key:
+    data: "{{ gpg_key.content | trim }}"
+    state: present
+  when: master_token is defined and legacy_gpg is undefined
+
+- name: "Adding packagecloud.io repository: {{ repository }}"
+  get_url:
+    url: "{{ debian_config_file_url }}"
+    dest: "{{ debian_config_file_location }}"
+    force: false
+  register: added_deb_repository
+  when: master_token is undefined
+
+- name: "Adding packagecloud.io repository: {{ repository }} with generated read token"
+  get_url:
+    url: "{{ debian_config_file_url }}"
+    dest: "{{ debian_config_file_location }}"
+    url_username: "{{ master_token }}"
+    force_basic_auth: true
+    force: false
+  register: added_deb_repository_with_token
+  when: master_token is defined
+
+- name: Update APT package cache
+  apt:
+    update_cache: true
+  when: added_deb_repository.changed or added_deb_repository_with_token.changed
