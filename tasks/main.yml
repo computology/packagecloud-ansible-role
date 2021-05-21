@@ -73,6 +73,7 @@
   get_url:
       url: "{{ debian_config_file_url }}"
       dest: "{{ debian_config_file_location }}"
+      force: yes
   register: added_deb_repository
   when: ansible_os_family == "Debian" and master_token is undefined
 
@@ -82,6 +83,7 @@
       dest: "{{ debian_config_file_location }}"
       url_username: "{{ master_token }}"
       force_basic_auth: yes
+      force: yes
   register: added_deb_repository_with_token
   when: ansible_os_family == "Debian" and master_token is defined
 
@@ -89,6 +91,7 @@
   get_url:
       url: "{{ redhat_config_file_url }}"
       dest: "{{ redhat_config_file_location }}"
+      force: yes
   register: added_rpm_repository
   when: ansible_os_family == "RedHat" and master_token is undefined
 
@@ -98,6 +101,7 @@
       dest: "{{ redhat_config_file_location }}"
       url_username: "{{ master_token }}"
       force_basic_auth: yes
+      force: yes
   register: added_rpm_repository_with_token
   when: ansible_os_family == "RedHat" and master_token is defined
 
